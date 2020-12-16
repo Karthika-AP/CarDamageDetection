@@ -28,145 +28,10 @@ import secrets
 import shutil
 import string
 
-from .scripts.CarDamage import *
-from .scripts import CarDamageEdited
-from .scripts.extras import handle_uploaded_file
+from .scripts import Damage
 
 
-@ensure_csrf_cookie
-@csrf_exempt
-@require_POST
-def prediction(request):
-  try:
-    if request.method == 'POST':            
-            file_front = request.FILES['accident_front']
-            print(file_front)
-            print("hey")
-            print(type(file_front))
-            file_rear = request.FILES['accident_rear']
-            print(file_rear)
-            file_left = request.FILES['accident_left']
-            print(file_left)
-            file_right = request.FILES['accident_right']
-            print(file_right)
-            
-            al = string.ascii_letters + string.digits
-            k = 8
-            
-            accident_front = "".join(secrets.SystemRandom().choices(al, k=k)) + file_front.name
-            accident_rear = "".join(secrets.SystemRandom().choices(al, k=k)) + file_rear.name
-            accident_left = "".join(secrets.SystemRandom().choices(al, k=k)) + file_left.name
-            accident_right = "".join(secrets.SystemRandom().choices(al, k=k)) + file_right.name
-
-            print(accident_front)
-            print(type(accident_front))
-            print(accident_rear)
-            print(accident_left)
-            print(accident_right)
-
-            handle_uploaded_file(file_front, "front", accident_front)
-            handle_uploaded_file(file_rear, "rear", accident_rear)
-            handle_uploaded_file(file_left, "left", accident_left)
-            handle_uploaded_file(file_right, "right", accident_right)
-
-            boolean_is_car = False
-            boolean_is_car = is_car()
-            if not boolean_is_car:
-                print("Not a CAR - ######## Upload Image of a car")
-                context = {
-                    "message": "Please upload Images of a Car"
-                  }
-                response = JsonResponse(context, safe=False)
-                response["Access-Control-Allow-Origin"] = "*"
-                response["Access-Control-Allow-Credentials"] = "true"
-                response["Access-Control-Allow-Methods"] = "POST, GET, PUT, OPTIONS, DELETE"
-                response["Access-Control-Max-Age"] = "3600"
-                response["Access-Control-Allow-Headers"] = "X-Remote-User,X-Impersonate-User,X-Requested-With, Content-Type, Authorization, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers"
-                return response
-            else:
-                boolean_hood_engine,boolean_bumper_front,boolean_bumper_rear,boolean_windshield_frontglass,boolean_windshield_rearglass=(False for i in range(5))
-                boolean_boot_storage,boolean_window_left,boolean_window_right,boolean_door_left,boolean_door_right=(False for i in range(5))
-                
-                if is_front():
-                    boolean_hood_engine = is_hood()
-                    boolean_bumper_front = is_bumper()
-                    boolean_windshield_frontglass = is_windshield()
-                if is_side('left'):
-                    boolean_window_left = is_window('left')
-                    boolean_door_left = is_door('left')
-                if is_side('right'):
-                    boolean_window_right = is_window('right')
-                    boolean_door_right = is_door('right')
-                if is_rear():
-                    boolean_boot_storage = is_boot()
-                    boolean_bumper_rear = is_bumper_rear()
-                    boolean_windshield_rearglass = is_windshield_rear()
-
-                
-                    
-                if any([boolean_hood_engine,boolean_bumper_front,boolean_windshield_frontglass,boolean_window_left,boolean_door_left,
-                        boolean_window_right,boolean_door_right,boolean_boot_storage,boolean_bumper_rear,boolean_windshield_rearglass]):
-                  print("Damage")
-                  print(boolean_hood_engine,boolean_bumper_front,boolean_windshield_frontglass,boolean_window_left,boolean_door_left,
-                        boolean_window_right,boolean_door_right,boolean_boot_storage,boolean_bumper_rear,boolean_windshield_rearglass)
-
-                  result=[]
-                  
-                  ka = []
-                  ka.append(str(boolean_hood_engine))
-                  ka.append(str(boolean_bumper_front))
-                  ka.append(str(boolean_windshield_frontglass))
-                  ka.append(str(boolean_window_left))
-                  ka.append(str(boolean_door_left))
-                  ka.append(str(boolean_window_right))
-                  ka.append(str(boolean_door_right))
-                  ka.append(str(boolean_boot_storage))
-                  ka.append(str(boolean_bumper_rear))
-                  ka.append(str(boolean_windshield_rearglass))
-                  result.append(ka)
-
-                  FinalResult=[]
-                  for a,b,c,d,e,f,g,h,i,j in result:
-                      FinalResult.append(dict(boolean_hood_engine=a, boolean_bumper_front=b, boolean_windshield_frontglass=c,
-                                              boolean_window_left=d, boolean_door_left=e, boolean_window_right=f, boolean_door_right=g, boolean_boot_storage=h,
-                                              boolean_bumper_rear=i, boolean_windshield_rearglass=j))    
-
-                  response = JsonResponse(FinalResult, safe=False)
-                  response["Access-Control-Allow-Origin"] = "*"
-                  response["Access-Control-Allow-Credentials"] = "true"
-                  response["Access-Control-Allow-Methods"] = "POST, GET, PUT, OPTIONS, DELETE"
-                  response["Access-Control-Max-Age"] = "3600"
-                  response["Access-Control-Allow-Headers"] = "X-Remote-User,X-Impersonate-User,X-Requested-With, Content-Type, Authorization, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers"
-                  return response
-                    
-                else:
-                  print("No Damage")
-
-                  context = {
-                    "message": "Hurray!!! Your Car has No Damage"
-                  }
-                  response = JsonResponse(context, safe=False)
-                  response["Access-Control-Allow-Origin"] = "*"
-                  response["Access-Control-Allow-Credentials"] = "true"
-                  response["Access-Control-Allow-Methods"] = "POST, GET, PUT, OPTIONS, DELETE"
-                  response["Access-Control-Max-Age"] = "3600"
-                  response["Access-Control-Allow-Headers"] = "X-Remote-User,X-Impersonate-User,X-Requested-With, Content-Type, Authorization, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers"
-                  return response
-
-  except HTTPError:
-                context = {
-                    "message": "Internal Server Error 500. Please check with Tools Team"
-                }
-                response = JsonResponse(context, status=status.HTTP_500_INTERNAL_SERVER_ERROR, safe=False)
-                response["Access-Control-Allow-Origin"] = "*"
-                response["Access-Control-Allow-Credentials"] = "true"
-                response["Access-Control-Allow-Methods"] = "POST, GET, PUT, OPTIONS, DELETE"
-                response["Access-Control-Max-Age"] = "3600"
-                response["Access-Control-Allow-Headers"] = "X-Remote-User,X-Impersonate-User,X-Requested-With, Content-Type, Authorization, Origin, Accept, Access-Control-Request-Method, Access-Control-Request-Headers"
-                return response
-
-
-@ensure_csrf_cookie
+#@ensure_csrf_cookie
 @csrf_exempt
 @require_POST
 def front(request):
@@ -186,16 +51,16 @@ def front(request):
       front_result=[]
       f_result=[]
       
-      boolean_is_car = CarDamageEdited.is_car(view)
+      boolean_is_car, prediction_car = Damage.predict_car(view)
       if boolean_is_car:        
-        boolean_is_front = CarDamageEdited.is_front()
+        boolean_is_front, prediction_front = Damage.predict_front()
         if boolean_is_front:
-          boolean_hood_engine = CarDamageEdited.is_hood()
-          boolean_bumper_front = CarDamageEdited.is_bumper()
-          boolean_windshield_frontglass = CarDamageEdited.is_windshield()
-          f_result.append(dict(is_hood=boolean_hood_engine, is_bumper=boolean_bumper_front, is_frontglass=boolean_windshield_frontglass))
-        front_result.append(dict(damaged=boolean_is_front, types=f_result))
-      result.append(dict(image=filename, is_car=boolean_is_car, is_front=front_result))
+          boolean_hood_engine, prediction_hood = Damage.predict_hood()
+          boolean_bumper_front, prediction_bumper = Damage.predict_bumper()
+          boolean_windshield_frontglass, prediction_windshield = Damage.predict_windshield()
+          f_result.append(dict(is_hood=boolean_hood_engine, prediction_hood=prediction_hood, is_bumper=boolean_bumper_front, prediction_bumper=prediction_bumper, is_frontglass=boolean_windshield_frontglass, prediction_windshield=prediction_windshield))
+        front_result.append(dict(damaged=boolean_is_front, front_prediction=prediction_front, types=f_result))
+      result.append(dict(image=filename, is_car=boolean_is_car, is_prediction=prediction_car, is_front=front_result))
       print(result)
 
       response = JsonResponse(result, safe=False)
@@ -233,16 +98,16 @@ def rear(request):
       rear_result=[]
       r_result=[]
       
-      boolean_is_car = CarDamageEdited.is_car(view)
+      boolean_is_car, prediction_car = Damage.predict_car(view)
       if boolean_is_car:        
-        boolean_is_rear = CarDamageEdited.is_rear()
+        boolean_is_rear, prediction_rear = Damage.predict_rear()
         if boolean_is_rear:
-          boolean_boot_storage = CarDamageEdited.is_boot()
-          boolean_bumper_rear = CarDamageEdited.is_bumper_rear()
-          boolean_windshield_rearglass = CarDamageEdited.is_windshield_rear()
-          r_result.append(dict(is_boot=boolean_boot_storage, is_bumper=boolean_bumper_rear, is_rearglass=boolean_windshield_rearglass))
-        rear_result.append(dict(damaged=boolean_is_rear, types=r_result))
-      result.append(dict(image=filename, is_car=boolean_is_car, is_rear=rear_result))
+          boolean_boot_storage, prediction_storage = Damage.predict_boot()
+          boolean_bumper_rear, prediction_rear = Damage.predict_bumper_rear()
+          boolean_windshield_rearglass,  prediction_rearglass = Damage.predict_windshield_rear()
+          r_result.append(dict(is_boot=boolean_boot_storage, prediction_storage=prediction_storage, is_bumper=boolean_bumper_rear, prediction_rear=prediction_rear, is_rearglass=boolean_windshield_rearglass, prediction_rearglass=prediction_rearglass))
+        rear_result.append(dict(damaged=boolean_is_rear, prediction_rear=prediction_rear, types=r_result))
+      result.append(dict(image=filename, is_car=boolean_is_car, is_prediction=prediction_car, is_rear=rear_result))
       print(result)
 
       response = JsonResponse(result, safe=False)
@@ -280,15 +145,15 @@ def left(request):
       left_result=[]
       l_result=[]
       
-      boolean_is_car = CarDamageEdited.is_car(view)
+      boolean_is_car, prediction_car = Damage.predict_car(view)
       if boolean_is_car:        
-        boolean_is_left = CarDamageEdited.is_side_left()
+        boolean_is_left, prediction_left = Damage.predict_side_left()
         if boolean_is_left:
-          boolean_window_left = CarDamageEdited.is_window_left()
-          boolean_door_left = CarDamageEdited.is_door_left()
-          l_result.append(dict(is_window=boolean_window_left, is_door=boolean_door_left))
-        left_result.append(dict(damaged=boolean_is_left, types=l_result))
-      result.append(dict(image=filename, is_car=boolean_is_car, is_left=left_result))
+          boolean_window_left, prediction_window = Damage.predict_window_left()
+          boolean_door_left, prediction_door = Damage.predict_door_left()
+          l_result.append(dict(is_window=boolean_window_left, prediction_window=prediction_window, is_door=boolean_door_left, prediction_door=prediction_door))
+        left_result.append(dict(damaged=boolean_is_left, prediction_left=prediction_left, types=l_result))
+      result.append(dict(image=filename, is_car=boolean_is_car, is_prediction=prediction_car, is_left=left_result))
       print(result)
 
       response = JsonResponse(result, safe=False)
@@ -326,15 +191,15 @@ def right(request):
       right_result=[]
       ri_result=[]
       
-      boolean_is_car = CarDamageEdited.is_car(view)
+      boolean_is_car, prediction_car = Damage.predict_car(view)
       if boolean_is_car:        
-        boolean_is_right = CarDamageEdited.is_side_right()
+        boolean_is_right, prediction_right = Damage.predict_side_right()
         if boolean_is_right:
-          boolean_window_right = CarDamageEdited.is_window_right()
-          boolean_door_right = CarDamageEdited.is_door_right()
-          ri_result.append(dict(is_window=boolean_window_right, is_door=boolean_door_right))
-        right_result.append(dict(damaged=boolean_is_right, types=ri_result))
-      result.append(dict(image=filename, is_car=boolean_is_car, is_right=right_result))
+          boolean_window_right, prediction_window = Damage.predict_window_right()
+          boolean_door_right, prediction_door = Damage.predict_door_right()
+          ri_result.append(dict(is_window=boolean_window_right, prediction_window=prediction_window, is_door=boolean_door_right, prediction_door=prediction_door))
+        right_result.append(dict(damaged=boolean_is_right, prediction_right=prediction_right, types=ri_result))
+      result.append(dict(image=filename, is_car=boolean_is_car, is_prediction=prediction_car, is_right=right_result))
       print(result)
 
       response = JsonResponse(result, safe=False)
